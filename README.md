@@ -111,10 +111,10 @@ who owns it.
 
 | Week | Goal | Owner |
 |---|---|---|
-| 1 | | |
-| 2 | | |
-| 3 | | |
-| 4 | Defense | |
+| 1 | Framework | all |
+| 2 | Decoder | Jared |
+| 3 | Encoder and Checksum | Brent/JM |
+| 4 | Defense | all |
 
 ## Subsystem Ownership
 
@@ -124,7 +124,7 @@ share one. The commit history must agree with this table.
 
 | Subsystem | Owner |
 |---|---|
-| Decode path (`decode.asm`) | |
+| Decode path (`decode.asm`) | Jared Chua |
 | Encode path (`encode.asm`) | |
 | Checksum and tests (`checksum.asm`, `tests/`) | |
 
