@@ -90,9 +90,56 @@ not edits.
 
 ## Design Notes
 
-Complete this section before the Week 1 progress report. The syllabus asks
-for problem analysis, a solution architecture, and an estimated timeline.
-Keep each part short. Update it when the plan changes.
+**How does the header layout work?**
+
+For this lab, we are essentially tasked to encode/decode/compute the checksum for an IPv4 header, which is composed of 20 bytes. This is what the header layout will look like in the implementation.
+
+
+***1st Double Word
+1st Byte:
+This includes the Version and the Internet Header Length which are both 4 widths respectively
+
+2nd Byte: 
+We have the DSCP and ECN which are 6 bits and 2 bits width respectively
+
+3rd and 4th Byte:
+We have the Total Length that is split between 2 bytes  which we store it in big endian
+
+
+***2nd Double Word
+4th and 5th Byte:
+This includes the Identification number which we store it in big endian it has a width of 16 bits
+
+6th Byte: 
+We have the flags in which its width is 3 which goes from bit 5 to 7, we reserve bit 7. and we the flag will change depending on whats 1 in bit 5 or 6
+
+6th and 7th:
+We have the Fragment Offset in which it occpies the bits 0 - 4 in byte 6; and the entirety of the 7th byte, it has a width of 13
+
+
+***3rd Double Word
+8th Byte:
+This includes the TTL which has the width of 8 and occupies the 8th byte
+
+9th Byte: 
+We have the Protocol in which it occupies the 9th Byte. It has only 2 values which are 6 for TCP and 17 for UDP
+
+10th and 11th Byte:
+We have the Header Checksum in which it occupies 2 bytes
+
+the value of this is the sum of all 16 bits partitions for in the entire header, except the portion in which the Header Checksum will be. If the sum has overflowed, then we add binary 1 to the sum to "fold" it.
+
+Then, we invert the value of the sums, and that will be the Header Checksum
+
+
+***4th Double Word
+12th to 15th Byte:
+This includes the entire Source Address
+
+***5th Double Word
+16th to 19th Byte:
+This includes the entire Destination Address
+
 
 ### Problem analysis
 
@@ -103,6 +150,13 @@ one. State the header layout in your own words.
 
 How the three routines split the work. Which registers each routine uses,
 and how the struct offsets in `driver.c` map to the fields.
+
+**How do the three subsystems split the work?**
+So basically the decoding part is what converts the 20 bytes of IPv4 header into a readable format
+
+The encoding part is what gets the inputs to be be masked an inserted into their respective partitions and positions in the entire 20 byte header, and also computes for the value of the checksum.
+
+The Checksum function is to check if the current checksum is VALID, it re runs the same computation for creating the checksum but this time add the portion of the checksum itself to cover the whole header. Then checks if the value is 0x0000 then its VALID, if not then its not valid
 
 ### Timeline
 
