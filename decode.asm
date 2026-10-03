@@ -62,6 +62,150 @@ _decode_header:
         ; the struct, and driver.c does the rest.
         ;
 
+        mov     esi, [ebp + 8]
+        mov     edi, [ebp + 12]
+
+        ; move the zeroth byte into ebx {y}
+        movzx   ebx, byte [esi + 0]
+
+        ; decode version
+        ; ignore lower 4 bits and shift to the beginning
+        mov     eax, ebx
+        and     eax, 0b11110000
+        shr     eax, 4
+        mov     [edi], eax
+
+        ; decode IHL
+        ; ignore upper 4 bits, and no need to shift
+        mov     eax, ebx
+        and     eax, 0b00001111
+        mov     [edi + 4], eax
+
+
+        ; move the first byte into ebx {y}
+        movzx   ebx, byte [esi + 1]
+
+        ; decode dscp
+        ; ignore lower 2 bits and shift to the beginning
+        mov     eax, ebx
+        and     eax, 0b11111100
+        shr     eax, 2
+        mov     [edi + 8], eax
+
+        ; decode ECN
+        ; ignore upper 6 bits, and no need to shift
+        mov     eax, ebx
+        and     eax, 0b00000011
+        mov     [edi + 12], eax
+
+
+        ; move and process the second/third bytes {y}
+        ; decode length
+        ; big-endian: byte 2 goes on ah, byte 3 goes on al
+        ; eax naturally reverses the two
+        movzx   ebx, byte [esi + 2]
+        movzx   ecx, byte [esi + 3]
+
+        mov     eax, ebx
+        shl     eax, 8
+        or      eax, ecx
+        mov     [edi + 16], eax
+
+
+        ; move and process the fourth/fifth bytes {y}
+        ; decode identification
+        ; big-endian: byte 4 goes on ah and byte 5 goes on al
+        movzx   ebx, byte [esi + 4]
+        movzx   ecx, byte [esi + 5]
+        
+        mov     eax, ebx
+        shl     eax, 8
+        or      eax, ecx
+        mov     [edi + 20], eax
+
+
+        ; move and process the six/seventh bytes {y}
+        movzx   ebx, byte [esi + 6]
+        movzx   ecx, byte [esi + 7]
+
+        ; decode flags
+        ; take the top 2-3 bits and shift to the beginning
+        mov     eax, ebx
+        and     eax, 0b01100000
+        shr     eax, 5
+        mov     [edi + 24], eax
+
+        ; decode fragment offset
+        mov     eax, ebx
+        and     eax, 0b00011111
+        shl     eax, 8
+        or      eax, ecx
+
+        mov     [edi + 28], eax
+
+
+        ; move and process the eigth byte {y}
+        ; decode TTL
+        movzx   eax, byte [esi + 8]
+        mov     [edi + 32], eax
+
+
+        ; move and process the ninth byte {y}
+        ; decode protocol
+        movzx   eax, byte [esi + 9]
+        mov     [edi + 36], eax
+
+
+        ; move and process the tenth/eleventh byte {y}
+        ; decode header checksum (incomplete since the checksum subsystem hasnt been built yet)
+        movzx   ebx, byte [esi + 10]
+        movzx   ecx, byte [esi + 11]
+
+        ; call checksum function or whatever, here
+        ; placeholder: print the bytes
+
+        mov     eax, ebx
+        shl     eax, 8
+        or      eax, ecx
+        mov     [edi + 40], eax
+
+
+        ; move and process the twelfth-fifteenth byte {y}
+        ; decode source address
+        movzx   eax, byte [esi + 12]
+        movzx   ebx, byte [esi + 13]
+        movzx   ecx, byte [esi + 14]
+        movzx   edx, byte [esi + 15]
+        
+        shl     ebx, 8
+        shl     ecx, 16
+        shl     edx, 24
+
+        or      eax, ebx
+        or      eax, ecx        
+        or      eax, edx
+
+        mov     [edi + 44], eax
+
+
+        ; move and process the sixteenth-nineteenth byte {y}
+        ; decode destination address
+        movzx   eax, byte [esi + 16]
+        movzx   ebx, byte [esi + 17]
+        movzx   ecx, byte [esi + 18]
+        movzx   edx, byte [esi + 19]
+        
+        shl     ebx, 8
+        shl     ecx, 16
+        shl     edx, 24
+
+        or      eax, ebx
+        or      eax, ecx        
+        or      eax, edx
+        
+        mov     [edi + 48], eax
+
+
         popa
         mov     eax, 0
         leave
