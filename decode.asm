@@ -103,82 +103,106 @@ _decode_header:
         ; decode length
         ; big-endian: byte 2 goes on ah, byte 3 goes on al
         ; eax naturally reverses the two
-        xor     eax, eax
-        mov     ah, [esi + 2]
-        mov     al, [esi + 3]
+        movzx   ebx, byte [esi + 2]
+        movzx   ecx, byte [esi + 3]
+
+        mov     eax, ebx
+        shl     eax, 8
+        or      eax, ecx
         mov     [edi + 16], eax
 
 
         ; move and process the fourth/fifth bytes {y}
         ; decode identification
         ; big-endian: byte 4 goes on ah and byte 5 goes on al
-        mov     ah, [esi + 4]
-        mov     al, [esi + 5]
+        movzx   ebx, byte [esi + 4]
+        movzx   ecx, byte [esi + 5]
+        
+        mov     eax, ebx
+        shl     eax, 8
+        or      eax, ecx
         mov     [edi + 20], eax
 
 
         ; move and process the six/seventh bytes {y}
-        xor     eax, eax
-        xor     ebx, ebx
-        mov     bl, [esi + 6]
-        mov     bh, [esi + 7]
+        movzx   ebx, byte [esi + 6]
+        movzx   ecx, byte [esi + 7]
 
         ; decode flags
         ; take the top 2-3 bits and shift to the beginning
-        mov     al, bl
-        and     al, 0b01100000
-        shr     al, 5
+        mov     eax, ebx
+        and     eax, 0b01100000
+        shr     eax, 5
         mov     [edi + 24], eax
 
         ; decode fragment offset
-        ; exploit ah-al by processing byte 6 on ah and letting
-        ; al copy byte 7
-        mov     ah, bl
-        and     ah, 0b00011111
-        mov     al, bh
+        mov     eax, ebx
+        and     eax, 0b00011111
+        shl     eax, 8
+        or      eax, ecx
 
         mov     [edi + 28], eax
 
 
         ; move and process the eigth byte {y}
-        xor     eax, eax
-        mov     al, [esi + 8]
+        ; decode TTL
+        movzx   eax, byte [esi + 8]
         mov     [edi + 32], eax
 
 
         ; move and process the ninth byte {y}
-        mov     al, [esi + 9]
+        ; decode protocol
+        movzx   eax, byte [esi + 9]
         mov     [edi + 36], eax
 
 
         ; move and process the tenth/eleventh byte {y}
-        mov     ah, [esi + 10]
-        mov     al, [esi + 11]
+        ; decode header checksum (incomplete since the checksum subsystem hasnt been built yet)
+        movzx   ebx, byte [esi + 10]
+        movzx   ecx, byte [esi + 11]
+
         ; call checksum function or whatever, here
+        ; placeholder: print the bytes
+
+        mov     eax, ebx
+        shl     eax, 8
+        or      eax, ecx
         mov     [edi + 40], eax
 
 
         ; move and process the twelfth-fifteenth byte {y}
-        xor     eax, eax
-        xor     ebx, ebx
-        mov     al, [esi + 12]
-        mov     ah, [esi + 13]
-        mov     bl, [esi + 14]
-        mov     bh, [esi + 15]
-        shl     ebx, 16
+        ; decode source address
+        movzx   eax, byte [esi + 12]
+        movzx   ebx, byte [esi + 13]
+        movzx   ecx, byte [esi + 14]
+        movzx   edx, byte [esi + 15]
+        
+        shl     ebx, 8
+        shl     ecx, 16
+        shl     edx, 24
+
         or      eax, ebx
+        or      eax, ecx        
+        or      eax, edx
+
         mov     [edi + 44], eax
 
 
         ; move and process the sixteenth-nineteenth byte {y}
-        xor     eax, eax
-        xor     ebx, ebx
-        mov     al, [esi + 16]
-        mov     ah, [esi + 17]
-        mov     bl, [esi + 18]
-        mov     bh, [esi + 19]
-        shl     ebx, 16
+        ; decode destination address
+        movzx   eax, byte [esi + 16]
+        movzx   ebx, byte [esi + 17]
+        movzx   ecx, byte [esi + 18]
+        movzx   edx, byte [esi + 19]
+        
+        shl     ebx, 8
+        shl     ecx, 16
+        shl     edx, 24
+
         or      eax, ebx
+        or      eax, ecx        
+        or      eax, edx
+        
         mov     [edi + 48], eax
 
 
