@@ -272,6 +272,17 @@ _encode_header:
         mov     [edi + 16], ebx
 
 
+        ; byte 10 - 11 is done by the check_sum function
+        ; checksum is last to be done
+        push    dword 20
+        push    edi
+        call    _ip_checksum
+        mov     ebx, [esp]
+        add     esp, 8
+        mov     [edi + 10], ah
+        mov     [edi + 11], al
+
+
         popa
         mov     eax, 0
         leave
