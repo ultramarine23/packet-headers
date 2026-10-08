@@ -40,7 +40,7 @@ segment .text
         global  _ip_checksum
 _ip_checksum:
         enter   0,0
-        push    eax
+        pusha
 
         ;
         ; TODO: the checksum loop.
