@@ -40,7 +40,7 @@ segment .text
         global  _ip_checksum
 _ip_checksum:
         enter   0,0
-        pusha
+        push    eax
 
         ;
         ; TODO: the checksum loop.
@@ -62,7 +62,63 @@ _ip_checksum:
         ; enough. Leave the answer in ax when you return.
         ;
 
+
+
+        ; eax is accumulator
+        mov     edi, 0
+        mov     ebx, 0
+        mov     edx, 0
+
+ 
+        mov     ecx, [ebp + 12]         ; iterator
+        mov     esi, [ebp + 8]          ; an address pointing to 20 bytes of header (from encoding)
+
+
+        ; esi = header, ecx = length in bytes, returns checksum in ax
+        ; the loop changes ebx and esi, so save both before it and restore them after
+        xor eax, eax ; accumulator
+        sum_loop:
+                cmp ecx, 0
+                jle .fold
+
+                ; high 2 byte group
+                movzx ebx, byte [esi]
+                shl ebx, 8
+
+                ; low 2 byte group
+                movzx edx, byte [esi + 1]
+                or ebx, edx
+
+                ; 32-bit accumulator, carries are still represented outside the 16 bit group
+                add eax, ebx    
+
+                add esi, 2
+                sub ecx, 2
+                jmp sum_loop
+
+        ; do this if the high 16 bit group is not zero
+        .fold:
+
+                ; divide the 16 bit groups of eax, store higher 16 bit group to other reg.
+                ; shift the higher 16 bit group to the Right...
+                ; so that we can add the lower and higher groups
+                mov     ebx, eax
+                shr     ebx, 16
+                jz      .done
+                and     eax, 0x0000FFFF
+                add     eax, ebx
+                jmp     .fold
+        
+
+        .done:
+                ; store the returned value 
+                not     eax
+                and     eax, 0x0000FFFF
+                mov     [esp + 28], eax
+        
+
+        
+
         popa
-        mov     eax, 0
         leave
         ret
