@@ -1,11 +1,7 @@
 ;
 ; checksum.asm - the one's complement internet checksum.
 ;
-; This is your starting point. It assembles and links as-is, so the build
-; works before you write any code. Right now it always returns 0, which
-; makes every header decode as VALID. The decode path sums the header as it
-; stands and tests for zero, so a routine that returns 0 says "valid" for
-; everything. Your job is to replace that with the sum described below.
+; Compute the one's complement sum used for generation and verification.
 ;
 ; The contract, from driver.c:
 ;
@@ -42,41 +38,21 @@ _ip_checksum:
         enter   0,0
         pusha
 
-        ;
-        ; TODO: the checksum loop.
-        ;
-        ; The manual's recipe:
-        ;
-        ;   1. Treat the header as 16-bit big-endian words. Load each byte
-        ;      pair and recombine. Never load the pair as a single 16-bit
-        ;      value, which gives you the bytes reversed.
-        ;   2. Add each word to a 32-bit accumulator. Keep the carries. The
-        ;      fold below returns them to the sum.
-        ;   3. While the accumulator exceeds 16 bits, add its high half to
-        ;      its low half. This is the end-around carry. A large sum can
-        ;      need the fold twice.
-        ;   4. NOT the low 16 bits. That is the checksum.
-        ;
-        ; len is always even, since the driver calls this with 20. A loop
-        ; that consumes two bytes per iteration and stops on ecx == 0 is
-        ; enough. Leave the answer in ax when you return.
-        ;
+        mov     ebx, 0 ;ebx: temporary 16 bit word
+        mov     edx, 0 ;edx: temporary storage for second byte
 
+        ;ecx: number of bytes remaining
+        ;esi: address of current header byte
+        ;ebp: reference point for stack arguments
+        ;esp: stack pointer
 
-
-        ; eax is accumulator
-        mov     edi, 0
-        mov     ebx, 0
-        mov     edx, 0
-
- 
-        mov     ecx, [ebp + 12]         ; iterator
+        ;load function arguments
+        mov     ecx, [ebp + 12]         ; iterator/remaining bytes
         mov     esi, [ebp + 8]          ; an address pointing to 20 bytes of header (from encoding)
-
 
         ; esi = header, ecx = length in bytes, returns checksum in ax
         ; the loop changes ebx and esi, so save both before it and restore them after
-        xor eax, eax ; accumulator
+        xor eax, eax ; accumulator initialization (set eax to zero)
         sum_loop:
                 cmp ecx, 0
                 jle .fold
@@ -90,7 +66,7 @@ _ip_checksum:
                 or ebx, edx
 
                 ; 32-bit accumulator, carries are still represented outside the 16 bit group
-                add eax, ebx    
+                add eax, ebx
 
                 add esi, 2
                 sub ecx, 2
@@ -108,16 +84,13 @@ _ip_checksum:
                 and     eax, 0x0000FFFF
                 add     eax, ebx
                 jmp     .fold
-        
 
         .done:
-                ; store the returned value 
+                ; store the returned value
                 not     eax
                 and     eax, 0x0000FFFF
+                ; pusha saved eax at esp+28; replace it so popa returns the result.
                 mov     [esp + 28], eax
-        
-
-        
 
         popa
         leave

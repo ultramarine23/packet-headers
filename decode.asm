@@ -1,10 +1,7 @@
 ;
 ; decode.asm - extract every field from a 20-byte IPv4 header.
 ;
-; This is your starting point. It assembles and links as-is, so the build
-; works before you write any code. Right now it stores nothing, so renpkt
-; prints the zeros driver.c put in the struct. Your job is to replace that
-; with the extraction described below.
+; Extract all thirteen fields; leave checksum verification to the driver.
 ;
 ; The contract, from driver.c:
 ;
@@ -41,27 +38,6 @@ _decode_header:
         enter   0,0
         pusha
 
-        ;
-        ; TODO: read the header and fill the struct.
-        ;
-        ; The field-by-field layout is the table in the manual. The notes
-        ; that matter before you start:
-        ;
-        ;   * Every multi-byte field is big-endian, so load it byte by byte
-        ;     and recombine. A single 16-bit load gives you the bytes
-        ;     reversed.
-        ;   * The fragment offset straddles a byte boundary. Its top five
-        ;     bits live in byte 6 and its bottom eight in byte 7. Combine
-        ;     both bytes into one word first, then shift and mask.
-        ;   * The flags are the top three bits of the same word.
-        ;   * Read and store the checksum field like any other field.
-        ;     ip_checksum computes the VALID line separately.
-        ;   * src and dst are four single-byte stores each. No shifting.
-        ;
-        ; Nothing here reads the file or prints. This routine only fills
-        ; the struct, and driver.c does the rest.
-        ;
-
         mov     esi, [ebp + 8]
         mov     edi, [ebp + 12]
 
@@ -81,7 +57,6 @@ _decode_header:
         and     eax, 0b00001111
         mov     [edi + 4], eax
 
-
         ; move the first byte into ebx {y}
         movzx   ebx, byte [esi + 1]
 
@@ -98,7 +73,6 @@ _decode_header:
         and     eax, 0b00000011
         mov     [edi + 12], eax
 
-
         ; move and process the second/third bytes {y}
         ; decode length
         ; big-endian: byte 2 goes on ah, byte 3 goes on al
@@ -111,7 +85,6 @@ _decode_header:
         or      eax, ecx
         mov     [edi + 16], eax
 
-
         ; move and process the fourth/fifth bytes {y}
         ; decode identification
         ; big-endian: byte 4 goes on ah and byte 5 goes on al
@@ -122,7 +95,6 @@ _decode_header:
         shl     eax, 8
         or      eax, ecx
         mov     [edi + 20], eax
-
 
         ; move and process the six/seventh bytes {y}
         movzx   ebx, byte [esi + 6]
@@ -143,32 +115,25 @@ _decode_header:
 
         mov     [edi + 28], eax
 
-
         ; move and process the eigth byte {y}
         ; decode TTL
         movzx   eax, byte [esi + 8]
         mov     [edi + 32], eax
-
 
         ; move and process the ninth byte {y}
         ; decode protocol
         movzx   eax, byte [esi + 9]
         mov     [edi + 36], eax
 
-
         ; move and process the tenth/eleventh byte {y}
-        ; decode header checksum (incomplete since the checksum subsystem hasnt been built yet)
+        ; decode the stored checksum as a big-endian field
         movzx   ebx, byte [esi + 10]
         movzx   ecx, byte [esi + 11]
-
-        ; call checksum function or whatever, here
-        ; placeholder: print the bytes
 
         mov     eax, ebx
         shl     eax, 8
         or      eax, ecx
         mov     [edi + 40], eax
-
 
         ; move and process the twelfth-fifteenth byte {y}
         ; decode source address
@@ -187,7 +152,6 @@ _decode_header:
 
         mov     [edi + 44], eax
 
-
         ; move and process the sixteenth-nineteenth byte {y}
         ; decode destination address
         movzx   eax, byte [esi + 16]
@@ -204,7 +168,6 @@ _decode_header:
         or      eax, edx
         
         mov     [edi + 48], eax
-
 
         popa
         mov     eax, 0
