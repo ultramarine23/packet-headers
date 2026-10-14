@@ -14,3 +14,9 @@ sample03 valid
 sample04 valid
 sample05 valid
 bad01 invalid
+edge_min valid
+edge_frag1 valid
+edge_maxfrag valid
+edge_doublefold valid
+edge_reserved valid
+edge_corrupt invalid
