@@ -131,7 +131,7 @@ _decode_header:
         ; decode flags
         ; take the top 2-3 bits and shift to the beginning
         mov     eax, ebx
-        and     eax, 0b01100000
+        and     eax, 0b11100000   ; preserve all three bits, including reserved
         shr     eax, 5
         mov     [edi + 24], eax
 
