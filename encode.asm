@@ -75,9 +75,6 @@ _encode_header:
         ; bits 7-4 = Version
         ; bits 3-0 = IHL
 
-        mov     eax, [esi + 16]
-        mov    [edi], eax
-
         ; 1st DoubleWord
         ; byte 0 = Version | IHL
         ; bits 7-4 = Version
@@ -168,7 +165,7 @@ _encode_header:
         ; get it in the next higher half of the fragment_offset
         mov     eax, [esi + 28]
         and     eax, 0x00001F00  ; 0b 0001 1111 0000 0000
-        shl     eax, 16
+        shl     eax, 8             ; bits 8-12 become byte 6's low five bits
         or      ebx, eax
 
 
@@ -195,7 +192,7 @@ _encode_header:
         ; 3rd DWORD
         ; clear the ebx and the 3rd Dword
         xor     ebx, ebx
-        mov     [edi + 8], 0   
+        mov     dword [edi + 8], 0 ; includes the checksum bytes
         
         ; byte 8        
         mov     eax, [esi + 32]
@@ -277,7 +274,6 @@ _encode_header:
         push    dword 20
         push    edi
         call    _ip_checksum
-        mov     ebx, [esp]
         add     esp, 8
         mov     [edi + 10], ah
         mov     [edi + 11], al
