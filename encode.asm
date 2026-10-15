@@ -1,10 +1,7 @@
 ;
 ; encode.asm - build a 20-byte IPv4 header from the field struct.
 ;
-; This is your starting point. It assembles and links as-is, so the build
-; works before you write any code. Right now it writes nothing, so the
-; twenty bytes driver.c saves are whatever the buffer held. Your job is to
-; replace that with the construction described below.
+; Pack the field struct into network order and insert a fresh checksum.
 ;
 ; The contract, from driver.c:
 ;
@@ -49,34 +46,13 @@ _encode_header:
         enter   0,0
         pusha
 
-        ;
-        ; TODO: build the header from the struct.
-        ;
-        ; This is the reverse of decode. Mask each field to its width,
-        ; shift it up to where it lives, or the pieces of a shared byte
-        ; together, then store the byte. The fields that do not straddle
-        ; anything are one store each.
-        ;
-        ; The checksum comes last, after every other byte is written. Write
-        ; bytes 10-11 as zero, call ip_checksum with the header and 20, and
-        ; store its result (in ax) into the field big-endian. Computing it
-        ; before the rest of the header is in place sums whatever garbage
-        ; was in the buffer. ip_checksum preserves ebx, esi, edi, and ebp,
-        ; so a pointer kept in one of those survives the call. eax, ecx, and
-        ; edx do not.
-        ;
-
         mov     esi, [ebp + 8]
         mov     edi, [ebp + 12]
 
-       
         ; 1st DWord
         ; byte 0 = Version | IHL
         ; bits 7-4 = Version
         ; bits 3-0 = IHL
-
-        mov     eax, [esi + 16]
-        mov    [edi], eax
 
         ; 1st DoubleWord
         ; byte 0 = Version | IHL
@@ -91,7 +67,6 @@ _encode_header:
         mov     eax, [esi + 4]      ; eax = IHL
         and     eax, 0x0000000F     ; keep only 4 bits
         or      ebx, eax
-        
 
         ; byte 1 -> DSCP | ECN
         ; 7 - 2 | 1 - 0
@@ -121,14 +96,6 @@ _encode_header:
         or      ebx, eax
 
         mov     [edi], ebx
-        
-
-
-
-
-
-
-
 
         ; 2nd DWord
         ; 4 - 5 Byte
@@ -146,7 +113,6 @@ _encode_header:
         or      ebx, eax
         ; ebx -> 00 00 46 1c
 
-
         ; byte 6 - 7
         ; x -> flags 
         ; y - > fragment_offset
@@ -156,7 +122,6 @@ _encode_header:
         ;[edi + 6] -> xxxy yyyy
         ;[edi + 7] -> yyyy yyyy
 
-
         ; byte 6
         ; get the flags, and shift it to the left
         mov     eax, [esi + 24]
@@ -164,13 +129,11 @@ _encode_header:
         shl     eax, 21
         or     ebx, eax
 
-        ; lower 6 bits is still missing
-        ; get it in the next higher half of the fragment_offset
+        ; The upper five offset bits share byte 6 with the flags.
         mov     eax, [esi + 28]
         and     eax, 0x00001F00  ; 0b 0001 1111 0000 0000
-        shl     eax, 16
+        shl     eax, 8             ; bits 8-12 become byte 6's low five bits
         or      ebx, eax
-
 
         ; byte 7
         ; get the lower part of the fragment_offset
@@ -180,42 +143,23 @@ _encode_header:
         or      ebx, eax
         
         mov     [edi + 4], ebx 
-       
-        
-
-        
-
-
-
-        
-
-
-
 
         ; 3rd DWORD
         ; clear the ebx and the 3rd Dword
         xor     ebx, ebx
-        mov     [edi + 8], 0   
+        mov     dword [edi + 8], 0 ; includes the checksum bytes
         
         ; byte 8        
         mov     eax, [esi + 32]
         and     eax, 0x000000FF
         or      ebx, eax
-;       
-; up to this point, the program is working
-;
-;
-;
-;
         ; byte 9
         mov     eax, [esi + 36]
         and     eax, 0x000000FF
         shl     eax, 8
         or      ebx, eax
 
-        
         mov     [edi + 8], ebx
-
 
 ; 4th DWORD
         ; byte 12 - 15 Source Address
@@ -244,7 +188,6 @@ _encode_header:
 
         mov     [edi + 12], ebx
 
-
         ; 5th DWORD
         ; byte 16 - 19 destination
         xor     ebx, ebx
@@ -271,17 +214,14 @@ _encode_header:
 
         mov     [edi + 16], ebx
 
-
         ; byte 10 - 11 is done by the check_sum function
         ; checksum is last to be done
         push    dword 20
         push    edi
         call    _ip_checksum
-        mov     ebx, [esp]
         add     esp, 8
         mov     [edi + 10], ah
         mov     [edi + 11], al
-
 
         popa
         mov     eax, 0
